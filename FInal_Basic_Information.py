@@ -20,11 +20,15 @@ class Information:
         
         total_vertex   = []
         total_terminal = []
+        terminal_info  = []
         for line in order_reader:
             if line[3] not in total_vertex:
                 total_vertex.append(line[3])
         for line in terminal_reader:
             if line[0] not in total_terminal:
+                terminal_info.append(line)
+                terminal_info[-1][1] = float(terminal_info[-1][1])
+                terminal_info[-1][2] = float(terminal_info[-1][2])
                 total_terminal.append(line[0])
         
         total_vertex = total_vertex + total_terminal
@@ -39,6 +43,7 @@ class Information:
         
         terminal_file.close()
         order_file.close()
+        self.terminal_info           = terminal_info
         self.total_vertex            = total_vertex
         self.total_terminal          = total_terminal
         self.total_index_of_vertex   = total_index_of_vertex
