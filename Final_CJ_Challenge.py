@@ -98,7 +98,7 @@ for i, batch_orders in enumerate(information.total_orders):
             clustering_model = CJ_Cluster(batch_orders[j], information.distance_matrix, information.total_index_of_vertex, terminal_site)
             print("+++++++++++++++++++++++++++++++++++++", i, j)
             print("batch_num", len(batch_orders[j]))
-            print("site num", clustering_model.site_number)
+            print("site num", len(clustering_model.orders_site))
             print("cluster num", clustering_model.cluster_number)
             print("++++++++++++++")
             for k in range(clustering_model.cluster_number):
