@@ -1,5 +1,6 @@
 import numpy as np
 import csv, copy
+from config import ENCODING_TYPE
 
 class Information:
     def __init__(self, od_matrix_file, order_table_file, terminal_file, vehicle_file):
@@ -11,8 +12,8 @@ class Information:
         self._make_nearest_terminal_from_D()
     
     def _make_vertex_to_index(self, terminal_file_name, order_table_file_name):
-        terminal_file = open(terminal_file_name, 'r',encoding='cp949')
-        order_file    = open(order_table_file_name, 'r',encoding='cp949')
+        terminal_file = open(terminal_file_name, 'r',encoding=ENCODING_TYPE)
+        order_file    = open(order_table_file_name, 'r',encoding=ENCODING_TYPE)
         terminal_reader = csv.reader(terminal_file)
         order_reader    = csv.reader(order_file)
         next(terminal_reader)
@@ -67,7 +68,7 @@ class Information:
         print("complete make distance time matrix")
     
     def _processing_order(self, order_table_file_name):
-        order_file   = open(order_table_file_name, 'r',encoding='cp949')
+        order_file   = open(order_table_file_name, 'r',encoding=ENCODING_TYPE)
         order_reader = csv.reader(order_file)
         
         total_orders = [[[] for __ in range(self.total_terminal_num)] for _ in range(6 * 4)]

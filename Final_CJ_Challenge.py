@@ -3,6 +3,7 @@ import numpy as np
 from tqdm import tqdm
 from Final_K_Means_Clustering import CJ_Cluster
 from FInal_Basic_Information  import Information
+from config import OD_MATRIX_FILE, ORDER_TABLE_FILE, VEHICLE_FILE, TERMINAL_FILE
 
 def possible_combinations_from_orders(batch_orders_in_terminal):
     possible_combinations = [[]]
@@ -25,10 +26,10 @@ def possible_combinations_from_orders(batch_orders_in_terminal):
         possible_combinations = copy.deepcopy(next_combintaions)
     return possible_combinations
 
-information = Information(od_matrix_file   = "File_OD_Matrix.csv",
-                          order_table_file = "File_Order.csv"    ,
-                          vehicle_file     = "File_Vehicle.csv"  ,
-                          terminal_file    = "File_Terminal.csv" ,)
+information = Information(od_matrix_file   = OD_MATRIX_FILE   ,
+                          order_table_file = ORDER_TABLE_FILE ,
+                          vehicle_file     = VEHICLE_FILE     ,
+                          terminal_file    = TERMINAL_FILE    ,)
 
 sum = 0
 order_num = 0
