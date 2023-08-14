@@ -1,5 +1,6 @@
 import numpy as np
-import copy, datetime, tqdm
+import pandas as pd
+import copy, datetime, csv
 from Final_Clustering         import CJ_Cluster
 from FInal_Basic_Information  import Information
 from Final_Calculator         import Calculator
@@ -48,8 +49,6 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
     start_order_num = 0
     fail_order_num1 = 0
     fail_order_num2 = 0
-    
-    group_result = copy.deepcopy(after_result)
     
     terminal_order_len = []
     for i in range(info.terminal_num):
@@ -149,8 +148,11 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
             vehicle_result               = copy.deepcopy(calculator.vehicle_result  )
             group_result                 = copy.deepcopy(calculator.group_result    )
             after_result                 = copy.deepcopy(calculator.after_result    )
-        
         batch_cost += terminal_cost
+        
+    final_orders_table = pd.DataFrame(group_result, columns=["ORD_NO", "VehicleID", "Sequence", "SiteCode", "ArrivalTime",
+                                                                "WaitingTime", "ServiceTime", "DepartureTime", "Delivered"])
+    final_orders_table.to_excel(excel_writer=f'final_orders_table_{ith_batch}.xlsx')
     cost += batch_cost
     print("Group", ith_batch%4, f"{(ith_batch%4)*6}:00", batch_cost, cost, start_order_num, fail_order_num1, fail_order_num2, start_order_num - fail_order_num1 - fail_order_num2)
 
@@ -160,3 +162,7 @@ for vehicle in vehicle_result:
     print(vehicle)
 final_cost = cost + total_fixed_cost
 print("====== FINAL_COST =======", final_cost)
+
+final_veh_table = pd.DataFrame(vehicle_result, columns=["VehicleID", "Count", "Volume", "TravelDistance", "WorkTime", "TravleTime",
+                                                        "ServiceTime", "WaitingTime", "TotalCost", "FixedCost", "VariableCost"])
+final_veh_table.to_excel(excel_writer='final_veh_table.xlsx')

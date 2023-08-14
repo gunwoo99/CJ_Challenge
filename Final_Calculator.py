@@ -132,7 +132,6 @@ class Calculator():
                     minimum_group_cost = average_length * np.sum(np.array(group)[:, 4]) * 100
                     combination_cost += minimum_group_cost
                     combination_info.append([float("inf"), best_permutation, selected_vehicle[0], selected_vehicle[1], float("inf")])
-                    
                 else:
                     for terminal in self.info.nearest_terminal_from_O[terminal_index]:
                         # 100km보다 먼 terminal은 조사하지 않음
@@ -295,8 +294,6 @@ class Calculator():
     
     def _vehicle_info_update(self, terminal_vehicle, vehicle_info, terminal_index):
         self.fail_group     = []
-        self.group_result   = []
-        self.after_result   = []
         #[[group],[group[cost, permutation, vehicle_name, vehicle_terminal, distance]],[]]
         for group in self.best_combination:
             arrive_time    = []
@@ -308,47 +305,41 @@ class Calculator():
                 for order in group[1]:
                     self.fail_group.append(order)
                 continue
+            
             time_flow    = vehicle_info[self.info.vehicle_to_index[group[2]]][1]
             time_flow   += datetime.timedelta(minutes=self.info.time_matrix[group[3]][self.info.destination_num + terminal_index])
-            time_flow   += datetime.timedelta(minutes=self.info.time_matrix[self.info.destination_num + terminal_index][self.info.vertex_to_index[group[1][0][3]]])
             group_travle_time += self.info.time_matrix[group[3]][self.info.destination_num + terminal_index]
-            group_travle_time += self.info.time_matrix[self.info.destination_num + terminal_index][self.info.vertex_to_index[group[1][0][3]]]
-            arrive_time.append(time_flow)
-            order_time_s = datetime.datetime(time_flow.year, time_flow.month, time_flow.day) + group[1][0][5]
-            order_time_e = datetime.datetime(time_flow.year, time_flow.month, time_flow.day) + group[1][0][6]
-            if time_flow < order_time_s:
-                waiting_time.append(str(order_time_s - time_flow))
-                vehicle_waiting_time += order_time_s - time_flow
-                time_flow = order_time_s
-            elif time_flow > order_time_e:
-                waiting_time.append(str(order_time_s - time_flow + datetime.timedelta(days=1)))
-                vehicle_waiting_time += order_time_s - time_flow + datetime.timedelta(days=1)
-                time_flow = order_time_s + datetime.timedelta(days=1)
-            else:
-                waiting_time.append("00:00:00")
-            time_flow += datetime.timedelta(hours=1)
-            departure_time.append(time_flow)
-            for i in range(len(group[1]) - 1):
-                time_flow += datetime.timedelta(minutes=self.info.time_matrix[self.info.vertex_to_index[group[1][i][3]]][self.info.vertex_to_index[group[1][i + 1][3]]])
-                group_travle_time += self.info.time_matrix[self.info.vertex_to_index[group[1][i][3]]][self.info.vertex_to_index[group[1][i + 1][3]]]
+            
+            for i in range(len(group[1])):
+                if i == 0:
+                    time_flow   += datetime.timedelta(minutes=self.info.time_matrix[self.info.destination_num + terminal_index][self.info.vertex_to_index[group[1][i][3]]])
+                    group_travle_time += self.info.time_matrix[self.info.destination_num + terminal_index][self.info.vertex_to_index[group[1][i][3]]]
+                else:
+                    time_flow += datetime.timedelta(minutes=self.info.time_matrix[self.info.vertex_to_index[group[1][i][3]]][self.info.vertex_to_index[group[1][i][3]]])
+                    group_travle_time += self.info.time_matrix[self.info.vertex_to_index[group[1][i][3]]][self.info.vertex_to_index[group[1][i][3]]]
+                    
                 arrive_time.append(time_flow)
-                order_time_s = datetime.datetime(time_flow.year, time_flow.month, time_flow.day) + group[1][0][5]
-                order_time_e = datetime.datetime(time_flow.year, time_flow.month, time_flow.day) + group[1][0][6]
+                
+                order_time_s = datetime.datetime(time_flow.year, time_flow.month, time_flow.day) + group[1][i][5]
+                order_time_e = datetime.datetime(time_flow.year, time_flow.month, time_flow.day) + group[1][i][6]
+                
                 if time_flow < order_time_s:
                     waiting_time.append(str(order_time_s - time_flow))
                     vehicle_waiting_time += order_time_s - time_flow
                     time_flow = order_time_s
                 elif time_flow > order_time_e:
-                    waiting_time.append(str(order_time_s - time_flow + datetime.timedelta(days=1)))
-                    vehicle_waiting_time += order_time_s - time_flow + datetime.timedelta(days=1)
+                    waiting_time.append(str(order_time_s + datetime.timedelta(days=1) - time_flow ))
+                    vehicle_waiting_time += order_time_s + datetime.timedelta(days=1) - time_flow
                     time_flow = order_time_s + datetime.timedelta(days=1)
                 else:
                     waiting_time.append("00:00:00")
-                if group[1][i][3] != group[1][i + 1][3]:
+                
+                if i == len(group[1])-1 or group[1][i][3] != group[1][i + 1][3]:
                     time_flow += datetime.timedelta(hours=1)
                     departure_time.append(time_flow)
                 else:
                     departure_time.append(time_flow + datetime.timedelta(hours=1))
+                
             time_flow         += datetime.timedelta(minutes=self.info.time_matrix[self.info.vertex_to_index[group[1][-1][3]]][self.info.vertex_to_index[self.info.nearest_termnial_from_D[group[1][-1][3]]]])
             group_travle_time += self.info.time_matrix[self.info.vertex_to_index[group[1][-1][3]]][self.info.vertex_to_index[self.info.nearest_termnial_from_D[group[1][-1][3]]]]
             vehicle_info[self.info.vehicle_to_index[group[2]]][1] = time_flow
@@ -357,13 +348,21 @@ class Calculator():
             
             # group[cost, permutation, vehicle_name, vehicle_terminal, distance]
             for i, order in enumerate(group[1]):
-                self.group_result.append([order[0], group[2], group[1], group[3], "Null", "Null", "Null", "Null", "No"])
-                self.after_result.append([order[0], group[2], group[1], group[3], order[3], 
-                                          arrive_time[i].strftime("%Y-%m-%d %H:%M"),
-                                          waiting_time[i],
-                                          order[7], 
-                                          departure_time[i].strftime("%Y-%m-%d %H:%M")
-                                          ])
+                sequence = len(self.group_result) + 1
+                self.group_result.append([order[0], group[2], sequence, self.info.index_to_terminal[group[3]], "Null", "Null", "Null", "Null", "No"])
+                self.after_result.append([order[0], group[2], sequence, order[3], 
+                                        arrive_time[i].strftime("%Y-%m-%d %H:%M"),
+                                        waiting_time[i],
+                                        order[7], 
+                                        departure_time[i].strftime("%Y-%m-%d %H:%M"),
+                                        "Yes"
+                                        ])
+            
+            for i, order in enumerate(self.group_result):
+                if order[8] == "Yes":
+                    continue
+                if datetime.datetime.strptime(self.after_result[i][7], "%Y-%m-%d %H:%M") <= self.batch_datetime:
+                    self.group_result[i] = self.after_result[i]
             
             
             vehicle_index = self.info.vehicle_to_index[group[2]]
@@ -374,21 +373,16 @@ class Calculator():
             else: 
                 self.vehicle_result[vehicle_index][7] += float(60*float(hour)+float(minute)+float(second)*0.6) #총 대기시간
             
-            get_off_number = 1
-            for i in range(len(group[1]) - 1):
-                if group[1][i] != group[1][i + 1]:
-                    get_off_number += 1
-            
-            self.vehicle_result[vehicle_index][1]  += len(group[2])
-            self.vehicle_result[vehicle_index][2]  += np.sum(np.array(group[1])[:, 4])
-            self.vehicle_result[vehicle_index][6]  += float(get_off_number * 60)
-            self.vehicle_result[vehicle_index][9]   = self.info.fixed_cost[self.info.total_vehicle_info[vehicle_index][3]]
-            self.vehicle_result[vehicle_index][10] += group[0]
-            self.vehicle_result[vehicle_index][8]  += self.vehicle_result[vehicle_index][9] + self.vehicle_result[vehicle_index][10]
-            self.vehicle_result[vehicle_index][3]  += group[4]
-            self.vehicle_result[vehicle_index][5]  += group_travle_time
-            self.vehicle_result[vehicle_index][4]   = self.vehicle_result[vehicle_index][5] + self.vehicle_result[vehicle_index][6] + self.vehicle_result[vehicle_index][7]            
-            
+            # group[cost, permutation, vehicle_name, vehicle_terminal, distance]
+            self.vehicle_result[vehicle_index][1]  += len(group[2])                                                                      # 배달한 주문 수
+            self.vehicle_result[vehicle_index][2]  += np.sum(np.array(group[1])[:, 4])                                                   # 총 적재량
+            self.vehicle_result[vehicle_index][6]  += float(len(set(map(lambda x:x[3], group[1]))) * 60)                                 # 총 하역시간
+            self.vehicle_result[vehicle_index][9]   = self.info.fixed_cost[self.info.total_vehicle_info[vehicle_index][3]]               # 차량 고정비
+            self.vehicle_result[vehicle_index][10] += group[0]                                                                           # 차량 거리 운영비
+            self.vehicle_result[vehicle_index][8]  += self.vehicle_result[vehicle_index][9] + self.vehicle_result[vehicle_index][10]     # 총 비용
+            self.vehicle_result[vehicle_index][3]  += group[4]                                                                           # 총 주행거리
+            self.vehicle_result[vehicle_index][5]  += group_travle_time                                                                  # 총 이동 시간
+            self.vehicle_result[vehicle_index][4]   = self.vehicle_result[vehicle_index][5] + self.vehicle_result[vehicle_index][6] + self.vehicle_result[vehicle_index][7] # 총 작업 시간
         
         self.vehicle_info     = copy.deepcopy(vehicle_info)
         self.terminal_vehicle = copy.deepcopy(terminal_vehicle)
