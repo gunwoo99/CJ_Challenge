@@ -47,17 +47,18 @@ class MinDistanceGrouping():
                 if group_ids[i]==group_ids[j]:return # 합칠필요 x
                 if groups_size[group_ids[i]] + groups_size[group_ids[j]] <= size:
                     if groups_size[group_ids[i]] >= groups_size[group_ids[j]]: # i에 j 합치기
+                        groups_size[group_ids[i]] += groups_size[group_ids[j]]
                         is_deleted[group_ids[j]] = True # j 삭제
                         for ji in groups[group_ids[j]]:
                             group_ids[ji] = group_ids[i]
                             groups[group_ids[i]].append(ji)
-                        groups_size[group_ids[i]] += groups_size[group_ids[j]]
-                    else: # j에 i 합치기
+                        
+                    else: # j에 i 
+                        groups_size[group_ids[j]] += groups_size[group_ids[i]]
                         is_deleted[group_ids[i]] = True # i 삭제
                         for ii in groups[group_ids[i]]:
                             group_ids[ii] = group_ids[j]
                             groups[group_ids[j]].append(ii)
-                        groups_size[group_ids[j]] += groups_size[group_ids[i]]
 
     def _grouping(self, max_group_size, site_indices, distance_matrix, index_site_number):
         groups      = [] # 결과 배열
@@ -78,7 +79,6 @@ class MinDistanceGrouping():
         for _, i, j in processed_distance_list:
             self._union(groups, groups_size, group_ids, is_deleted, i, j, index_site_number, max_group_size)
         return list(map(lambda x: x[1], filter(lambda x: not is_deleted[x[0]], enumerate(groups))))
-
 
 class CJ_Cluster:
     def __init__(self, order_list, distance_matrix, vertex_to_index, terminal_site):
@@ -176,7 +176,6 @@ class CJ_Cluster:
         self.distance                  = list(map(lambda x:x[1], self.clustered_orders))
         self.clustered_orders          = list(map(lambda x:x[0], self.clustered_orders))
         self.cluster_number            = len(self.clustered_orders)
-        
     # KMeans 실행부분
     def fit(self, orders):
         # max_iteration, centroid initialize

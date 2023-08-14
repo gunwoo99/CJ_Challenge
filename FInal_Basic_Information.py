@@ -2,13 +2,13 @@ import numpy as np
 import csv, copy, datetime
 
 class Information:
-    def __init__(self, od_matrix_file, order_table_file, terminal_file, vehicle_file):
+    def __init__(self, od_matrix_file, order_table_file, terminal_file, vehicle_file, TTL):
         self._make_vertex_to_index(terminal_file_name=terminal_file, order_table_file_name=order_table_file)
         self.vertex_num = len(self.index_to_vertex)
         self._make_distance_time_matrix(od_matrix_file_name=od_matrix_file)
         self.terminal_num = len(self.index_to_terminal)
         self.destination_num = self.vertex_num - self.terminal_num
-        self._processing_order(order_table_file_name=order_table_file)
+        self._processing_order(order_table_file_name=order_table_file, TTL=TTL)
         self._make_nearest_terminal()
         self._make_vehicle_information(vehicle_file_name=vehicle_file)
     
@@ -69,7 +69,7 @@ class Information:
         od_matrix_file.close()
         print("complete make distance time matrix")
     
-    def _processing_order(self, order_table_file_name):
+    def _processing_order(self, order_table_file_name, TTL):
         order_file   = open(order_table_file_name, 'r', encoding='cp949')
         order_reader = csv.reader(order_file) 
         
@@ -83,6 +83,7 @@ class Information:
             order[6] = datetime.timedelta(hours=int(order[6].split(":")[0]), minutes=int(order[6].split(":")[1]))
             if (order[6] - order[5]).days == - 1:
                 order[6] += datetime.timedelta(days=1)
+            order.append(TTL)
             total_orders[(int(order[9][-2:]) - 1) * 4 + int(order[10])][self.terminal_to_index[order[8]]].append(order)
         
         self.total_orders = total_orders
@@ -132,7 +133,7 @@ class Information:
             self.cbm_to_index[self.cbm[i]] = i
         # vehicle info 
         self.total_vehicle_info = []
-        self.terminal_vehicle   = [[[],[],[],[],[]] for _ in range(self.terminal_num)]
+        self.terminal_vehicle   = [[[] for __ in range(len(self.cbm))] for _ in range(self.terminal_num)]
         
         vehicle_file.close()
         vehicle_file   = open(vehicle_file_name, 'r', encoding='cp949')
