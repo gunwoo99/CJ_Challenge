@@ -79,6 +79,7 @@ class MinDistanceGrouping():
             self._union(groups, groups_size, group_ids, is_deleted, i, j, index_site_number, max_group_size)
         return list(map(lambda x: x[1], filter(lambda x: not is_deleted[x[0]], enumerate(groups))))
 
+
 class CJ_Cluster:
     def __init__(self, order_list, distance_matrix, vertex_to_index, terminal_site):
         self.assigend_cluster     = []
