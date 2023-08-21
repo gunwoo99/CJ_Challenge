@@ -92,11 +92,25 @@ class Information:
         print("complete collecting_order")
     
     def _make_nearest_terminal(self):
-        nearest_terminal_from_D = {}
+        nearest_terminal_from_D  = {}
+        nearest_terminals_from_D = {}
         for i in range(self.destination_num):
             row = copy.deepcopy(self.distance_matrix[i][self.destination_num:])
-            nearest_terminal_from_D[self.index_to_vertex[i]] = self.index_to_terminal[np.argmin(row)]
-        self.nearest_termnial_from_D = nearest_terminal_from_D
+            nearest_terminal_from_D[self.index_to_vertex[i]]  = self.index_to_terminal[np.argmin(row)]
+            nearest_terminals_from_D[self.index_to_vertex[i]] = [self.index_to_terminal[np.argmin(row)]]
+            
+            row[np.argmin(row)] = float("inf")
+            for j in range(len(row)):
+                if row[np.argmin(row)] < 50:
+                    nearest_terminals_from_D[self.index_to_vertex[i]].append(self.index_to_terminal[np.argmin(row)])
+                    row[np.argmin(row)] = float("inf")
+                else: break
+        self.nearest_termnial_from_D  = nearest_terminal_from_D
+        self.nearest_terminals_from_D = nearest_terminals_from_D
+        # for vertex in nearest_terminals_from_D.keys():
+        #     for terminal in nearest_terminals_from_D[vertex]:
+        #         print(self.distance_matrix[self.vertex_to_index[vertex]][self.vertex_to_index[terminal]], end=" ")
+        #     print("")
         
         self.nearest_terminal_from_O = []
         for i in range(self.terminal_num):
