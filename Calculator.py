@@ -70,9 +70,9 @@ class Calculator():
                                 for j in range(len(best_cost_vehicles)):
                                     near_terminal_to_terminal_time = self.info.time_matrix[self.info.vertex_to_index[terminal]][self.info.destination_num + terminal_index]
                                     vehicle_start = best_cost_vehicles[j][1]
-                                    if best_cost_vehicles[j][1] < self.batch_datetime:
+                                    if best_cost_vehicles[j][1] <= self.batch_datetime:
                                         vehicle_start = self.batch_datetime
-                                    if vehicle_start + datetime.timedelta(minutes=near_terminal_to_terminal_time) < min_departure and best_cost_vehicles[j][0] not in group_selected_vehicle: ##
+                                    if vehicle_start + datetime.timedelta(minutes=near_terminal_to_terminal_time) <= min_departure and best_cost_vehicles[j][0] not in group_selected_vehicle: ##
                                         closest_vehicle_index = j
                                 # min_departure안에 출발 시킬 수 있는게 없으면 다음 으로 넘어가고 출발 시킬 수 있는게 있으면 그 vehicle 선택
                                 
@@ -197,10 +197,10 @@ class Calculator():
         
         if possible_departure_time_in_batch < self.batch_datetime:
             possible_departure_time_in_batch += datetime.timedelta(days=1)
-            waiting_time += possible_departure_time_in_batch - self.batch_datetime
+            waiting_time += possible_departure_time_in_batch - self.batch_datetime - datetime.timedelta(hours=6)
         
-        if waiting_time > datetime.timedelta(hours=0) and 0 not in np.array(permutation)[:,-1]:
-            if waiting_time > datetime.timedelta(hours=config.WAITING_TIME_BOUNDARY):
+        if waiting_time >= datetime.timedelta(hours=2) and 0 not in np.array(permutation)[:,-1]:
+            if waiting_time >= datetime.timedelta(hours=config.WAITING_TIME_BOUNDARY):
                 return False
         
         if possible_departure_time_in_batch + (time_flow_s -  time_flow_e) >= datetime.datetime(config.YEAR, config.MONTH, config.END_DAY, 23):
@@ -292,18 +292,11 @@ class Calculator():
             vehicle_info[self.info.vehicle_to_index[group[2]]][1] = time_flow
             vehicle_info[self.info.vehicle_to_index[group[2]]][2] = 1
             terminal_vehicle[self.info.terminal_to_index[self.info.nearest_termnial_from_D[group[1][-1][3]]]][vehicle_info[self.info.vehicle_to_index[group[2]]][3]].append(group[2])
-            
+
             # group[cost, permutation, vehicle_name, vehicle_terminal, distance]
             # 터미널 정보 추가
-            self.info.terminal_to_index 
-            self.group_result.append(["Null", group[2], 0, self.info.index_to_terminal[group[3]], time_flow.strftime("%Y-%m-%d %H:%M"), 0, 0, time_flow.strftime("%Y-%m-%d %H:%M"), "Null"])
-            self.after_result.append(["Null", group[2], 0, self.info.index_to_terminal[group[3]], 
-                                        veh_arrival_time.strftime("%Y-%m-%d %H:%M"), # 도착시간
-                                        0, # 대기시간 = 출발시간 - 도착시간
-                                        0, # 서비스 시간?
-                                        veh_arrival_time.strftime("%Y-%m-%d %H:%M"), # 차량이 터미널에서 출발하는 시간
-                                        "Null"
-                                        ])
+            self.group_result.append(["Null", group[2], 0, self.info.index_to_terminal[group[3]], veh_arrival_time.strftime("%Y-%m-%d %H:%M"), 0, 0, veh_arrival_time.strftime("%Y-%m-%d %H:%M"), "Null"])
+            self.after_result.append(["Null", group[2], 0, self.info.index_to_terminal[group[3]], veh_arrival_time.strftime("%Y-%m-%d %H:%M"), 0, 0, veh_arrival_time.strftime("%Y-%m-%d %H:%M"), "Null"])
             
             for i, order in enumerate(group[1]):
                 self.group_result.append([order[0], group[2], 0, order[3], "Null", "Null", "Null", "Null", "No"])

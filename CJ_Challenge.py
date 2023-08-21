@@ -54,7 +54,7 @@ start_batch_order_num += [0, 0, 0, 0]
 for ith_batch, batch_orders in enumerate(info.total_orders):
     if ith_batch % config.BATCH_COUNT_PER_DAY == 0:
         print(f"{config.YEAR:04}-{config.MONTH:02}-{int(ith_batch/config.BATCH_COUNT_PER_DAY) + 1:02}")
-    batch_cost = 0
+    batch_cost      = 0
     start_order_num = 0
     fail_order_num1 = 0
     fail_order_num2 = 0
@@ -93,7 +93,7 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
                 continue
             elif batch_time <= order_s and order_s <= batch_time + datetime.timedelta(hours=4):
                 continue
-            elif batch_time + datetime.timedelta(hours=config.TOTAL_DAY*config.BATCH_COUNT_PER_DAY-1) <= order_e <= batch_time + datetime.timedelta(hours=30):
+            elif batch_time + datetime.timedelta(days=1, hours=3) <= order_e <= batch_time + datetime.timedelta(days=1, hours=6):
                 continue
             batch_orders[terminal_index][i][-1] -= 1
             failed_batch_orders_in_terminal.append(copy.deepcopy(batch_orders[terminal_index][i]))
@@ -174,18 +174,17 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
             group_result                 = copy.deepcopy(calculator.group_result    )
             after_result                 = copy.deepcopy(calculator.after_result    )
         batch_cost += terminal_cost
-    # 배차된 그룹 정렬(차량순서, 배송순서) => ith_batch_result
-    ith_batch_result = []
-    ith_batch_result += copy.deepcopy(group_result)        
+    # 배차된 그룹 정렬(차량순서, 배송순서) => ith_batch_result       
     vehicle_id_dict = {}
-    for i in range(len(ith_batch_result)):
-        if ith_batch_result[i][1] not in vehicle_id_dict:
-            vehicle_id_dict[ith_batch_result[i][1]] = []
-        ith_batch_result[i][2] = len(vehicle_id_dict[ith_batch_result[i][1]]) + 1
-        vehicle_id_dict[ith_batch_result[i][1]].append(ith_batch_result[i])
+    for i in range(len(group_result)):
+        if group_result[i][1] not in vehicle_id_dict:
+            vehicle_id_dict[group_result[i][1]] = []
+        group_result[i][2] = len(vehicle_id_dict[group_result[i][1]]) + 1
+        after_result[i][2] = len(vehicle_id_dict[group_result[i][1]]) + 1
+        vehicle_id_dict[group_result[i][1]].append(copy.deepcopy(group_result[i]))
     ith_batch_result =[]
-    for key,value in sorted(vehicle_id_dict.items(), key=lambda x:int(x[0][4:])):
-        ith_batch_result += value
+    for key in sorted(vehicle_id_dict.keys(), key=lambda x:int(x[4:])):
+        ith_batch_result += vehicle_id_dict[key]
     # 실패한 그룹 ith_batch_result에 추가
     for i in range(len(ith_batch_fail)):
         ith_batch_result.append([ith_batch_fail[i][0], "Null", "Null", "Null", "Null", "Null", "Null", "Null", "No"])
@@ -202,7 +201,7 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
           "total_this_order", start_order_num, fail_order_num1, 
           fail_order_num2, start_order_num - fail_order_num1 - fail_order_num2, 
           not_failed_num,
-          len(group_result))
+          len(ith_batch_result))
 
 total_fixed_cost = 0
 for vehicle in vehicle_result:
