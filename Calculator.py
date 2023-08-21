@@ -1,16 +1,18 @@
 import numpy as np
-import itertools, datetime, copy
+import itertools, datetime, copy, math
 from Information import Information
 import config
 
 class Calculator():
-    def __init__(self, type, possible_combinations, information, batch_datetime, terminal_index, terminal_vehicle, vehicle_info, vehicle_result, group_result, after_result):
+    def __init__(self, possible_combinations, information, batch_datetime, terminal_index, terminal_vehicle, vehicle_info, vehicle_result, group_result, after_result, ith_batch):
         self.info           : Information
         self.info           = information
         self.batch_datetime = batch_datetime
         self.vehicle_result = vehicle_result
         self.group_result   = group_result
         self.after_result   = after_result
+        self.ith_batch      = ith_batch
+        self.vehicle_info   = vehicle_info
         self._type1(
                 possible_combinations = possible_combinations,
                 terminal_index        = terminal_index,
@@ -41,15 +43,17 @@ class Calculator():
                         average_length += self.info.distance_matrix[self.info.vertex_to_index[group[i][3]]][self.info.vertex_to_index[self.info.nearest_termnial_from_D[group[i][3]]]]
                     average_length /= len(group)
                     average_length *= 1 + 0.15*len(group)
+                    self.info.distance_matrix
                     minimum_group_cost = average_length * np.sum(np.array(group)[:, 4]) * 100
                     combination_cost += minimum_group_cost
-                    combination_info.append([float("inf"), best_permutation, ["", -1, -1, -1, -1, float("inf")], float("inf")])
+                    combination_info.append([float("inf"), best_permutation, ["", -1, -1, -1, -1, float("inf")], float("inf"), 0])
                 else:
-                    selected_vehicle   = ["", -1, -1, -1, -1, float("inf")]
+                    selected_vehicle   = ["", -1, -1, -1, -1, float("inf"), 0]
                     for terminal in self.info.nearest_terminal_from_O[terminal_index]:
+                        
                         # 100km보다 먼 terminal은 조사하지 않음
-                        # if self.info.distance_matrix[self.info.vertex_to_index[terminal]][self.info.destination_num + terminal_index] > config.BURST_CALL_BOUNDARY and 0 not in np.array(group)[:,-1]:
-                        #     break
+                        if self.info.distance_matrix[self.info.vertex_to_index[terminal]][self.info.destination_num + terminal_index] > config.BURST_CALL_BOUNDARY and 0 not in np.array(group)[:,-1]:
+                            break
                         for i in range(min_vehicle, max_vehicle + 1):
                             break_vehicle = 0
                             # 그 터미널에 특정 type의 vehicle이 존재하지 않으면 다음으로 넘어감
@@ -77,20 +81,15 @@ class Calculator():
                                     #del terminal_vehicle[self.info.terminal_to_index[terminal]][i][delete_index]
                                     minimum_group_cost  = best_distance + self.info.distance_matrix[self.info.vertex_to_index[terminal]][self.info.destination_num + terminal_index]
                                     minimum_group_cost *= self.info.variable_cost[i]
-                                    if minimum_group_cost < selected_vehicle[5]:
+                                    group_fixed_cost = self.info.fixed_cost[i] * abs(self.vehicle_info[self.info.vehicle_to_index[best_cost_vehicles[closest_vehicle_index][0]]][2] - 1) * (1/(28 - self.ith_batch))
+                                    if minimum_group_cost + group_fixed_cost < selected_vehicle[5] + selected_vehicle[6]:
                                         selected_vehicle = [
                                             best_cost_vehicles[closest_vehicle_index][0],
                                             self.info.terminal_to_index[terminal],
                                             terminal_vehicle[self.info.terminal_to_index[terminal]][i].index(best_cost_vehicles[closest_vehicle_index][0]),
-                                            i, terminal, minimum_group_cost
+                                            i, terminal, minimum_group_cost,
+                                            group_fixed_cost,
                                         ]
-                                        # selected_vehicle[0] = best_cost_vehicles[closest_vehicle_index][0]
-                                        # selected_vehicle[1] = self.info.terminal_to_index[terminal]
-                                        # delete_index        = terminal_vehicle[self.info.terminal_to_index[terminal]][i].index(selected_vehicle[0])
-                                        # selected_vehicle[2] = delete_index
-                                        # selected_vehicle[3] = i
-                                        # selected_vehicle[4] = terminal
-                                        # selected_vehicle[5] = minimum_group_cost
                             if break_vehicle == 1:
                                 max_vehicle = i
                                 if vehicle_info[self.info.vehicle_to_index[selected_vehicle[0]]][2] == 1:
@@ -101,9 +100,9 @@ class Calculator():
                         combination_cost += best_distance * np.sum(np.array(group)[:,4]) * 100
                         combination_info.append([float("inf"), best_permutation, selected_vehicle, best_distance])
                     else:
-                        combination_cost += selected_vehicle[5]
+                        combination_cost += selected_vehicle[5] + selected_vehicle[6]
                         group_selected_vehicle.append(selected_vehicle[0])
-                        combination_info.append([selected_vehicle[5], best_permutation, selected_vehicle, best_distance + self.info.distance_matrix[selected_vehicle[1]][self.info.destination_num + terminal_index]])
+                        combination_info.append([selected_vehicle[5], best_permutation, selected_vehicle, best_distance + self.info.distance_matrix[self.info.destination_num + selected_vehicle[1]][self.info.destination_num + terminal_index]])
             
             if best_combination_cost > combination_cost:
                 best_combination = copy.deepcopy(combination_info)
@@ -295,27 +294,16 @@ class Calculator():
             terminal_vehicle[self.info.terminal_to_index[self.info.nearest_termnial_from_D[group[1][-1][3]]]][vehicle_info[self.info.vehicle_to_index[group[2]]][3]].append(group[2])
             
             # group[cost, permutation, vehicle_name, vehicle_terminal, distance]
-            # 터미널 정보 추가
-            self.info.terminal_to_index 
-            self.group_result.append(["Null", group[2], 0, self.info.index_to_terminal[group[3]], time_flow, 0, 0, time_flow, "Null"])
-            self.after_result.append(["Null", group[2], 0, self.info.index_to_terminal[group[3]], 
-                                        time_flow.strftime("%Y-%m-%d %H:%M"), # 도착시간
-                                        0, # 대기시간 = 출발시간 - 도착시간
-                                        0, # 서비스 시간?
-                                        time_flow.strftime("%Y-%m-%d %H:%M"), # 차량이 터미널에서 출발하는 시간
-                                        "Null"
-                                        ])
-            
             for i, order in enumerate(group[1]):
-                self.group_result.append([order[0], group[2], 0, order[3], "Null", "Null", "Null", "Null", "No"])
-                self.after_result.append([order[0], group[2], 0, order[3], 
+                sequence = len(self.group_result) + 1
+                self.group_result.append([order[0], group[2], sequence, self.info.index_to_terminal[terminal_index], "Null", "Null", "Null", "Null", "No"])
+                self.after_result.append([order[0], group[2], sequence, order[3], 
                                         arrive_time[i].strftime("%Y-%m-%d %H:%M"),
-                                        waiting_time[i].split(".")[0],
-                                        int(order[7]), 
+                                        waiting_time[i],
+                                        order[7], 
                                         departure_time[i].strftime("%Y-%m-%d %H:%M"),
                                         "Yes"
                                         ])
-                
             
             for i, order in enumerate(self.group_result):
                 if order[8] == "Yes":

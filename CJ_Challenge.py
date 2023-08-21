@@ -15,7 +15,7 @@ def possible_combinations_from_orders(order_set):
             
             for k, group in enumerate(combination):
                 group_cbm = np.sum(np.array(group)[:, 4])
-                if group_cbm + order[4] < 55:
+                if group_cbm + order[4] <= 55:
                     this_combination = copy.deepcopy(combination)
                     this_combination[k].append(order)
                     next_combintaions.append(this_combination)
@@ -58,7 +58,14 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
     start_order_num = 0
     fail_order_num1 = 0
     fail_order_num2 = 0
-    ith_batch_fail = []
+    
+    for vertex_idx in range(info.destination_num):
+        vertex_best_terminal_value = 99999999
+        for nearest_terminal in info.nearest_terminals_from_D[info.index_to_vertex[vertex_idx]]:
+            terminal_value = (info.distance_matrix[vertex_idx][info.vertex_to_index[nearest_terminal]] ** 3) / (len(batch_orders[info.terminal_to_index[nearest_terminal]]) + 1)
+            if vertex_best_terminal_value > terminal_value:
+                vertex_best_terminal_value = terminal_value
+                info.nearest_termnial_from_D[info.index_to_vertex[vertex_idx]] = nearest_terminal
     
     terminal_order_len = []
     for i in range(info.terminal_num):
@@ -89,7 +96,6 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
                 continue
             batch_orders[terminal_index][i][-1] -= 1
             failed_batch_orders_in_terminal.append(copy.deepcopy(batch_orders[terminal_index][i]))
-            ith_batch_fail.append(copy.deepcopy(batch_orders[terminal_index][i]))
             del batch_orders[terminal_index][i]
         # print(len(batch_orders[terminal_index]), len(failed_batch_orders_in_terminal))
         
@@ -97,7 +103,7 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
             info.total_orders[ith_batch + 1][terminal_index] += failed_batch_orders_in_terminal
         fail_order_num1 += len(failed_batch_orders_in_terminal)
         
-        if 22 < ith_batch < config.TOTAL_DAY*config.BATCH_COUNT_PER_DAY-1:
+        if 21 < ith_batch < config.TOTAL_DAY*config.BATCH_COUNT_PER_DAY-1:
             for i in range(len(info.total_orders[ith_batch][terminal_index])):
                 info.total_orders[ith_batch][terminal_index][i][-1] = 0
         
@@ -133,10 +139,11 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
         if len(processed_orders) > 1:
             sorted_orders = sorted(processed_orders, key=lambda x:np.mean(np.array(x)[:, -1]))
         terminal_cost = 0
+        
         for cluster in processed_orders:
             possible_combinations = possible_combinations_from_orders(cluster)
-            calculator = Calculator(
-                type                  = 1,    
+            # print(len(cluster))
+            calculator = Calculator(  
                 possible_combinations = possible_combinations, 
                 information           = info,
                 batch_datetime        = datetime.datetime(year=config.YEAR, month=config.MONTH, day=config.START_DAY) + datetime.timedelta(hours=ith_batch * config.BATCH_TIME_HOUR),
@@ -146,10 +153,12 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
                 vehicle_result        = vehicle_result,
                 group_result          = group_result,
                 after_result          = after_result,
+                ith_batch             = ith_batch,
             )
+            
             for j in range(len(calculator.fail_group)):
                 calculator.fail_group[j][-1] -= 1
-            ith_batch_fail += copy.deepcopy(calculator.fail_group)
+            
             if ith_batch < config.TOTAL_DAY*config.BATCH_COUNT_PER_DAY-1:
                 info.total_orders[ith_batch + 1][terminal_index] += copy.deepcopy(calculator.fail_group)
                 fail_order_num2 += len(calculator.fail_group)
@@ -164,35 +173,20 @@ for ith_batch, batch_orders in enumerate(info.total_orders):
             group_result                 = copy.deepcopy(calculator.group_result    )
             after_result                 = copy.deepcopy(calculator.after_result    )
         batch_cost += terminal_cost
-    # 배차된 그룹 정렬(차량순서, 배송순서) => ith_batch_result
-    ith_batch_result = []
-    ith_batch_result += copy.deepcopy(group_result)        
-    vehicle_id_dict = {}
-    for i in range(len(ith_batch_result)):
-        if ith_batch_result[i][1] not in vehicle_id_dict:
-            vehicle_id_dict[ith_batch_result[i][1]] = []
-        ith_batch_result[i][2] = len(vehicle_id_dict[ith_batch_result[i][1]]) + 1
-        vehicle_id_dict[ith_batch_result[i][1]].append(ith_batch_result[i])
-    ith_batch_result =[]
-    for key,value in sorted(vehicle_id_dict.items(), key=lambda x:int(x[0][4:])):
-        ith_batch_result += value
-    # 실패한 그룹 ith_batch_result에 추가
-    for i in range(len(ith_batch_fail)):
-        ith_batch_result.append([ith_batch_fail[i][0], "Null", "Null", "Null", "Null", "Null", "Null", "Null", "No"])
-    
-    final_orders_table = pd.DataFrame(ith_batch_result, columns=["ORD_NO", "VehicleID", "Sequence", "SiteCode", "ArrivalTime",
+        
+    final_orders_table = pd.DataFrame(group_result, columns=["ORD_NO", "VehicleID", "Sequence", "SiteCode", "ArrivalTime",
                                                                 "WaitingTime", "ServiceTime", "DepartureTime", "Delivered"])
     final_orders_table.to_excel(excel_writer=f'final_orders_table_{ith_batch}.xlsx')
     cost += batch_cost
     not_failed_num += start_order_num - fail_order_num1 - fail_order_num2
     print("Group", ith_batch%config.BATCH_COUNT_PER_DAY, f"{(ith_batch%config.BATCH_COUNT_PER_DAY)*config.BATCH_TIME_HOUR:<2}:00", 
-            "batch_cost", batch_cost, 
-            "total_cost", cost, 
-            "new_order", start_batch_order_num[ith_batch], 
-            "total_this_order", start_order_num, fail_order_num1, 
-            fail_order_num2, start_order_num - fail_order_num1 - fail_order_num2, 
-            not_failed_num,
-            len(group_result))
+          "batch_cost", batch_cost, 
+          "total_cost", cost, 
+          "new_order", start_batch_order_num[ith_batch], 
+          "total_this_order", start_order_num, fail_order_num1, 
+          fail_order_num2, start_order_num - fail_order_num1 - fail_order_num2, 
+          not_failed_num,
+          len(group_result))
 
 total_fixed_cost = 0
 for vehicle in vehicle_result:
