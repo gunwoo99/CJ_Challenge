@@ -1,21 +1,20 @@
 import numpy as np
 import csv, copy, datetime
-import config
 
 class Information:
-    def __init__(self, od_matrix_file, order_table_file, terminal_file, vehicle_file, TTL):
+    def __init__(self, od_matrix_file, order_table_file, terminal_file, vehicle_file):
         self._make_vertex_to_index(terminal_file_name=terminal_file, order_table_file_name=order_table_file)
         self.vertex_num = len(self.index_to_vertex)
         self._make_distance_time_matrix(od_matrix_file_name=od_matrix_file)
         self.terminal_num = len(self.index_to_terminal)
         self.destination_num = self.vertex_num - self.terminal_num
-        self._processing_order(order_table_file_name=order_table_file, TTL=TTL)
+        self._processing_order(order_table_file_name=order_table_file)
         self._make_nearest_terminal()
         self._make_vehicle_information(vehicle_file_name=vehicle_file)
     
     def _make_vertex_to_index(self, terminal_file_name, order_table_file_name):
-        terminal_file = open(terminal_file_name,    'r',encoding=config.ENCODING_TYPE)
-        order_file    = open(order_table_file_name, 'r',encoding=config.ENCODING_TYPE)
+        terminal_file = open(terminal_file_name,    'r',encoding='cp949')
+        order_file    = open(order_table_file_name, 'r',encoding='cp949')
         terminal_reader = csv.reader(terminal_file)
         order_reader    = csv.reader(order_file)
         next(terminal_reader)
@@ -70,11 +69,11 @@ class Information:
         od_matrix_file.close()
         print("complete make distance time matrix")
     
-    def _processing_order(self, order_table_file_name, TTL):
-        order_file   = open(order_table_file_name, 'r', encoding=config.ENCODING_TYPE)
+    def _processing_order(self, order_table_file_name):
+        order_file   = open(order_table_file_name, 'r', encoding='cp949')
         order_reader = csv.reader(order_file) 
         
-        total_orders = [[[] for __ in range(self.terminal_num)] for _ in range(config.TOTAL_DAY * config.BATCH_COUNT_PER_DAY)]
+        total_orders = [[[] for __ in range(self.terminal_num)] for _ in range(7 * 4)]
         next(order_reader)
         for order in order_reader:
             order[1] = float(order[1])
@@ -84,33 +83,18 @@ class Information:
             order[6] = datetime.timedelta(hours=int(order[6].split(":")[0]), minutes=int(order[6].split(":")[1]))
             if (order[6] - order[5]).days == - 1:
                 order[6] += datetime.timedelta(days=1)
-            order.append(TTL)
-            total_orders[(int(order[9][-2:]) - 1) * config.BATCH_COUNT_PER_DAY + int(order[10])][self.terminal_to_index[order[8]]].append(order)
+            total_orders[(int(order[9][-2:]) - 1) * 4 + int(order[10])][self.terminal_to_index[order[8]]].append(order)
         
         self.total_orders = total_orders
         order_file.close()
         print("complete collecting_order")
     
     def _make_nearest_terminal(self):
-        nearest_terminal_from_D  = {}
-        nearest_terminals_from_D = {}
+        nearest_terminal_from_D = {}
         for i in range(self.destination_num):
             row = copy.deepcopy(self.distance_matrix[i][self.destination_num:])
-            nearest_terminal_from_D[self.index_to_vertex[i]]  = self.index_to_terminal[np.argmin(row)]
-            nearest_terminals_from_D[self.index_to_vertex[i]] = [self.index_to_terminal[np.argmin(row)]]
-            
-            row[np.argmin(row)] = float("inf")
-            for j in range(len(row)):
-                if row[np.argmin(row)] < 50:
-                    nearest_terminals_from_D[self.index_to_vertex[i]].append(self.index_to_terminal[np.argmin(row)])
-                    row[np.argmin(row)] = float("inf")
-                else: break
-        self.nearest_termnial_from_D  = nearest_terminal_from_D
-        self.nearest_terminals_from_D = nearest_terminals_from_D
-        # for vertex in nearest_terminals_from_D.keys():
-        #     for terminal in nearest_terminals_from_D[vertex]:
-        #         print(self.distance_matrix[self.vertex_to_index[vertex]][self.vertex_to_index[terminal]], end=" ")
-        #     print("")
+            nearest_terminal_from_D[self.index_to_vertex[i]] = self.index_to_terminal[np.argmin(row)]
+        self.nearest_termnial_from_D = nearest_terminal_from_D
         
         self.nearest_terminal_from_O = []
         for i in range(self.terminal_num):
@@ -122,11 +106,11 @@ class Information:
             self.nearest_terminal_from_O.append(terminal)
     
     def _make_vehicle_information(self, vehicle_file_name):
-        vehicle_file   = open(vehicle_file_name, 'r', encoding=config.ENCODING_TYPE)
+        vehicle_file   = open(vehicle_file_name, 'r', encoding='cp949')
         vehicle_reader = csv.reader(vehicle_file)
         
         next(vehicle_reader)
-        start_time            = datetime.datetime(config.YEAR, config.MONTH, config.START_DAY)
+        start_time            = datetime.datetime(2023, 5, 1)
         self.vehicle_to_index = {}
         self.cbm_to_index     = {}
         self.cbm              = []
@@ -148,10 +132,10 @@ class Information:
             self.cbm_to_index[self.cbm[i]] = i
         # vehicle info 
         self.total_vehicle_info = []
-        self.terminal_vehicle   = [[[] for __ in range(len(self.cbm))] for _ in range(self.terminal_num)]
+        self.terminal_vehicle   = [[[],[],[],[],[]] for _ in range(self.terminal_num)]
         
         vehicle_file.close()
-        vehicle_file   = open(vehicle_file_name, 'r', encoding=config.ENCODING_TYPE)
+        vehicle_file   = open(vehicle_file_name, 'r', encoding='cp949')
         vehicle_reader = csv.reader(vehicle_file)
         next(vehicle_reader)
         for index, vehicle in enumerate(vehicle_reader):
@@ -162,3 +146,4 @@ class Information:
         
         vehicle_file.close()
         print("complete make vehicle information")
+        
